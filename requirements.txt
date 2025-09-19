@@ -1,0 +1,15 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+transformers==4.35.2
+torch==2.1.1
+pydantic==2.5.0
+# Offline inference deps
+onnx==1.15.0
+onnxruntime==1.16.3
+optimum==1.13.3
+numpy==1.26.2
+# Quantization tool (optional but recommended)
+onnxruntime-tools==1.7.0
+# Mobile conversion (optional): uncomment if converting ONNX -> TFLite
+# tf2onnx==1.15.1
+# tensorflow==2.14.0
