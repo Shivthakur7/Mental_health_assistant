@@ -3,29 +3,45 @@ from pathlib import Path
 import numpy as np
 import onnxruntime as ort
 from transformers import AutoTokenizer
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Import model manager
+from .model_manager import ensure_model_available
+
+# Ensure model is available before proceeding
+if not ensure_model_available():
+    raise RuntimeError("Failed to download or locate ONNX model. Please check your internet connection and try again.")
 
 # Paths
 ONNX_DIR = Path("./onnx_model")
 QUANT_MODEL_PATH = ONNX_DIR / "model_quantized.onnx"
 MODEL_PATH = ONNX_DIR / "model.onnx"
 
-if not ONNX_DIR.exists():
-    raise FileNotFoundError(
-        "onnx_model directory not found. Run export_onnx.py to generate the ONNX model first."
-    )
-
 # Load tokenizer
-tokenizer = AutoTokenizer.from_pretrained(str(ONNX_DIR))
+try:
+    tokenizer = AutoTokenizer.from_pretrained(str(ONNX_DIR))
+except Exception as e:
+    logger.error(f"Failed to load tokenizer: {e}")
+    raise RuntimeError("Failed to load tokenizer. Model may be corrupted.")
 
 # Prefer quantized model if available
 onnx_model_file = QUANT_MODEL_PATH if QUANT_MODEL_PATH.exists() else MODEL_PATH
 if not onnx_model_file.exists():
     raise FileNotFoundError(
-        f"ONNX model not found at {onnx_model_file}. Run export_onnx.py (and quantize_onnx.py optionally)."
+        f"ONNX model not found at {onnx_model_file}. This should not happen after model_manager check."
     )
 
 # Initialize ONNX Runtime session (CPU)
-session = ort.InferenceSession(str(onnx_model_file), providers=["CPUExecutionProvider"])
+try:
+    session = ort.InferenceSession(str(onnx_model_file), providers=["CPUExecutionProvider"])
+    logger.info(f"Successfully loaded ONNX model: {onnx_model_file}")
+except Exception as e:
+    logger.error(f"Failed to initialize ONNX session: {e}")
+    raise RuntimeError("Failed to initialize ONNX model session.")
 
 
 def softmax(logits: np.ndarray) -> np.ndarray:
