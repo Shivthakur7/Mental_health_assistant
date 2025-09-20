@@ -4,7 +4,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'services/api_client.dart';
+import 'widgets/crisis_dialog.dart';
+import 'screens/settings_screen.dart';
+import 'screens/analytics_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -50,7 +54,27 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _checkHealth();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Start session
+    await _startSession();
+    // Check backend health
+    await _checkHealth();
+  }
+
+  Future<void> _startSession() async {
+    try {
+      final sessionId = await _api.startSession();
+      if (sessionId != null) {
+        // Save session for persistence
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('session_id', sessionId);
+      }
+    } catch (e) {
+      print('Failed to start session: $e');
+    }
   }
 
   Future<void> _checkHealth() async {
@@ -87,12 +111,31 @@ class _HomePageState extends State<HomePage> {
     });
     
     try {
+      Map<String, dynamic> res;
+      
+      // Get emergency contacts from settings
+      final prefs = await SharedPreferences.getInstance();
+      final emergencyContactsEnabled = prefs.getBool('emergency_contacts_enabled') ?? false;
+      Map<String, String>? emergencyContacts;
+      
+      if (emergencyContactsEnabled) {
+        final phone = prefs.getString('emergency_phone');
+        final email = prefs.getString('emergency_email');
+        if (phone?.isNotEmpty == true || email?.isNotEmpty == true) {
+          emergencyContacts = {};
+          if (phone?.isNotEmpty == true) emergencyContacts['phone'] = phone!;
+          if (email?.isNotEmpty == true) emergencyContacts['email'] = email!;
+        }
+      }
+
       // Use multimodal analysis if we have additional inputs
       if (_selectedImage != null || _recordedAudio != null) {
-        final res = await _api.analyzeMultimodal(
+        res = await _api.analyzeMultimodal(
           text: text,
           imageFile: _selectedImage,
           audioFile: _recordedAudio,
+          emergencyContacts: emergencyContacts,
+          userName: prefs.getString('user_name') ?? 'User',
         );
         setState(() {
           _multimodalResult = res;
@@ -105,14 +148,23 @@ class _HomePageState extends State<HomePage> {
           _tip = res['cbt_tip'] as String? ?? '';
         });
       } else {
-        // Fallback to text-only analysis
-        final res = await _api.analyzeText(text);
+        // Text-only analysis with crisis detection
+        res = await _api.analyzeText(
+          text,
+          emergencyContacts: emergencyContacts,
+        );
         setState(() {
           final score = (res['mood_score'] as num?)?.toDouble() ?? 0.0;
           final label = res['mood_label'] as String? ?? '';
           _mood = '$label (${score.toStringAsFixed(2)})';
           _tip = res['cbt_tip'] as String? ?? '';
         });
+      }
+      
+      // Check for crisis detection
+      final crisisDetected = res['crisis_detected'] as bool? ?? false;
+      if (crisisDetected) {
+        _showCrisisDialog(res);
       }
     } catch (e) {
       setState(() {
@@ -123,6 +175,14 @@ class _HomePageState extends State<HomePage> {
         _loading = false;
       });
     }
+  }
+
+  void _showCrisisDialog(Map<String, dynamic> analysisResult) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent dismissing by tapping outside
+      builder: (context) => CrisisDialog(analysisResult: analysisResult),
+    );
   }
 
   Future<void> _pickImage() async {
@@ -201,9 +261,35 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mental Health AI - Multi-modal'),
+        title: const Text('Mental Health AI'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AnalyticsScreen(api: _api),
+                ),
+              );
+            },
+            icon: const Icon(Icons.analytics),
+            tooltip: 'Analytics',
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

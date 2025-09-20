@@ -20,3 +20,11 @@ librosa==0.10.1
 opencv-python==4.8.1.78
 tensorflow==2.14.0
 python-multipart==0.0.6
+
+# Stage 4 - Real-world Integration dependencies
+# Emergency notifications
+twilio==8.10.0
+# Database for analytics and monitoring
+# Gradio for demo deployment
+gradio==4.7.1
+# Email support (built-in smtplib is used, no additional deps needed)

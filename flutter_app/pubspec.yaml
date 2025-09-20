@@ -41,6 +41,11 @@ dependencies:
   permission_handler: ^11.4.0
   path_provider: ^2.1.4
   file_picker: ^8.1.2
+  
+  # Stage 4 - Crisis detection and emergency features
+  shared_preferences: ^2.2.2  # Session management
+  url_launcher: ^6.2.5        # Open crisis helplines
+  provider: ^6.1.1            # State management
 
 dev_dependencies:
   flutter_test:
