@@ -7,8 +7,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/api_client.dart';
 import 'widgets/crisis_dialog.dart';
+import 'widgets/activity_recommendations.dart';
 import 'screens/settings_screen.dart';
 import 'screens/analytics_screen.dart';
+import 'screens/daily_streak_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -50,6 +52,9 @@ class _HomePageState extends State<HomePage> {
   File? _selectedImage;
   File? _recordedAudio;
   Map<String, dynamic>? _multimodalResult;
+  
+  // Activity recommendations
+  Map<String, dynamic>? _recommendedActivities;
 
   @override
   void initState() {
@@ -108,6 +113,7 @@ class _HomePageState extends State<HomePage> {
       _mood = '';
       _tip = '';
       _multimodalResult = null;
+      _recommendedActivities = null;
     });
     
     try {
@@ -146,6 +152,7 @@ class _HomePageState extends State<HomePage> {
             _mood = '$label (${score.toStringAsFixed(3)})';
           }
           _tip = res['cbt_tip'] as String? ?? '';
+          _recommendedActivities = res['recommended_activities'] as Map<String, dynamic>?;
         });
       } else {
         // Text-only analysis with crisis detection
@@ -158,6 +165,7 @@ class _HomePageState extends State<HomePage> {
           final label = res['mood_label'] as String? ?? '';
           _mood = '$label (${score.toStringAsFixed(2)})';
           _tip = res['cbt_tip'] as String? ?? '';
+          _recommendedActivities = res['recommended_activities'] as Map<String, dynamic>?;
         });
       }
       
@@ -265,6 +273,18 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DailyStreakScreen(api: _api),
+                ),
+              );
+            },
+            icon: const Icon(Icons.local_fire_department),
+            tooltip: 'Daily Streak',
+          ),
           IconButton(
             onPressed: () {
               Navigator.push(
@@ -510,6 +530,9 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+              
+              // Activity Recommendations
+              ActivityRecommendationsWidget(activities: _recommendedActivities),
             ],
           ],
         ),

@@ -13,6 +13,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.model import analyze_mood
 from utils.cbt_tips import cbt_tips
+from utils.activity_recommendations import get_activity_recommendations, get_crisis_activities
+from utils.daily_questions import get_daily_questions, calculate_daily_wellness_score
 from services.crisis_detection import check_crisis
 from services.emergency_notifications import send_emergency_alert, notification_system
 from services.monitoring import monitor, log_request
@@ -70,6 +72,13 @@ def analyze_text(data: TextInput):
         # Get CBT tip
         tip = random.choice(cbt_tips)
         
+        # Get activity recommendations based on mood and crisis level
+        activities = get_activity_recommendations(
+            mood_score=mood_score,
+            crisis_level=crisis_result["analysis"]["crisis_level"],
+            num_activities=3
+        )
+        
         # Prepare response
         response = {
             "session_id": session_id,
@@ -77,7 +86,8 @@ def analyze_text(data: TextInput):
             "mood_label": mood_label,
             "cbt_tip": tip,
             "crisis_detected": crisis_result["analysis"]["is_crisis"],
-            "crisis_level": crisis_result["analysis"]["crisis_level"]
+            "crisis_level": crisis_result["analysis"]["crisis_level"],
+            "recommended_activities": activities
         }
         
         # Handle crisis response
@@ -299,9 +309,23 @@ def end_session(session_id: str):
     return {"status": "session_ended", "session_id": session_id}
 
 @app.get("/analytics")
-def get_analytics(days: int = 7):
-    """Get analytics summary for the specified number of days."""
-    return monitor.get_analytics_summary(days)
+def get_analytics(days: int = 7, user_id: str = None):
+    """Get analytics for the specified number of days. If user_id provided, returns user-specific analytics."""
+    try:
+        if user_id:
+            return monitor.get_user_analytics(user_id=user_id, days=days)
+        else:
+            return monitor.get_analytics_summary(days=days)
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+@app.get("/user_analytics/{user_id}")
+def get_user_specific_analytics(user_id: str, days: int = 7):
+    """Get analytics specific to a user."""
+    try:
+        return monitor.get_user_analytics(user_id=user_id, days=days)
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 @app.get("/crisis_alerts")
 def get_crisis_alerts(unresolved_only: bool = True):
@@ -339,7 +363,99 @@ def get_system_status():
         return {
             "status": "degraded",
             "error": str(e)
+        }, 500
+
+@app.get("/daily_activity")
+def get_daily_activity():
+    """Get a random daily wellness activity suggestion."""
+    from utils.activity_recommendations import activity_engine
+    return activity_engine.get_daily_activity()
+
+@app.post("/get_activities")
+def get_personalized_activities(request: dict):
+    """Get personalized activity recommendations."""
+    mood_score = request.get("mood_score", 0.0)
+    crisis_level = request.get("crisis_level", "none")
+    num_activities = request.get("num_activities", 3)
+    user_preferences = request.get("preferences", [])
+    
+    from utils.activity_recommendations import activity_engine
+    return activity_engine.get_recommendations(
+        mood_score=mood_score,
+        crisis_level=crisis_level,
+        num_activities=num_activities,
+        user_preferences=user_preferences
+    )
+
+@app.get("/daily_questions/{user_id}")
+def get_user_daily_questions(user_id: str):
+    """Get daily questions for a user."""
+    try:
+        return get_daily_questions(user_id)
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+@app.post("/submit_daily_checkin")
+def submit_daily_checkin(data: dict):
+    """Submit daily check-in answers and update streak."""
+    try:
+        user_id = data.get("user_id", "flutter_user")
+        questions_data = data.get("questions_data", {})
+        answers_data = data.get("answers", [])
+        
+        # Calculate wellness score
+        score_result = calculate_daily_wellness_score(answers_data)
+        
+        # Save to database
+        checkin_id = monitor.save_daily_checkin(
+            user_id=user_id,
+            questions_data=questions_data,
+            answers_data=answers_data,
+            wellness_score=score_result["overall_score"],
+            wellness_category=score_result["wellness_category"],
+            category_scores=score_result["category_scores"]
+        )
+        
+        # Get updated streak info
+        streak_info = monitor.get_user_streak_info(user_id)
+        
+        # Get daily scores for insights
+        daily_scores = monitor.get_user_daily_scores(user_id, days=30)
+        
+        # Generate insights and recommendations
+        from utils.daily_questions import daily_questions_engine
+        insights = daily_questions_engine.get_streak_insights(daily_scores)
+        
+        # Check if user needs intervention
+        needs_intervention = score_result["wellness_category"] in ["concerning", "critical"]
+        
+        return {
+            "checkin_id": checkin_id,
+            "wellness_score": score_result,
+            "streak_info": streak_info,
+            "insights": insights,
+            "needs_intervention": needs_intervention,
+            "message": "Daily check-in completed successfully!"
         }
+        
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+@app.get("/streak_info/{user_id}")
+def get_streak_info(user_id: str):
+    """Get user's streak information."""
+    try:
+        return monitor.get_user_streak_info(user_id)
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+@app.get("/daily_scores/{user_id}")
+def get_user_daily_scores(user_id: str, days: int = 30):
+    """Get user's daily wellness scores."""
+    try:
+        return monitor.get_user_daily_scores(user_id, days)
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 def _get_recommendation(mood_score: float) -> str:
     """Generate personalized recommendation based on mood score."""

@@ -31,7 +31,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     try {
       final systemStatus = await widget.api.getSystemStatus();
-      final analytics = await widget.api.getAnalytics(days: _selectedDays);
+      // Get user-specific analytics instead of global analytics
+      final analytics = await widget.api.getUserAnalytics(days: _selectedDays);
 
       setState(() {
         _systemStatus = systemStatus;
@@ -167,7 +168,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 Expanded(
                   child: _buildStatCard(
                     'Interactions',
-                    '${todayStats['interactions'] ?? 0}',
+                    '${(todayStats['interactions'] as num?)?.toInt() ?? 0}',
                     Icons.chat,
                     Colors.blue,
                   ),
@@ -176,7 +177,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 Expanded(
                   child: _buildStatCard(
                     'Crisis Events',
-                    '${todayStats['crisis_events'] ?? 0}',
+                    '${(todayStats['crisis_events'] as num?)?.toInt() ?? 0}',
                     Icons.warning,
                     Colors.red,
                   ),
@@ -185,7 +186,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 Expanded(
                   child: _buildStatCard(
                     'Users',
-                    '${todayStats['unique_users'] ?? 0}',
+                    '${(todayStats['unique_users'] as num?)?.toInt() ?? 0}',
                     Icons.people,
                     Colors.green,
                   ),
@@ -201,11 +202,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget _buildAnalyticsCard() {
     if (_analytics == null) return const SizedBox.shrink();
 
-    final totalInteractions = _analytics!['total_interactions'] as int? ?? 0;
-    final totalCrisisEvents = _analytics!['total_crisis_events'] as int? ?? 0;
-    final crisisRate = _analytics!['crisis_rate'] as double? ?? 0.0;
-    final avgMoodScore = _analytics!['average_mood_score'] as double? ?? 0.0;
-    final uniqueUsers = _analytics!['unique_users'] as int? ?? 0;
+    // Handle user-specific analytics structure
+    final personalStats = _analytics!['personal_stats'] as Map<String, dynamic>? ?? {};
+    final insights = _analytics!['insights'] as Map<String, dynamic>? ?? {};
+    
+    final totalInteractions = (personalStats['total_interactions'] as num?)?.toInt() ?? 0;
+    final totalCrisisEvents = (personalStats['crisis_events'] as num?)?.toInt() ?? 0;
+    final crisisRate = (personalStats['crisis_rate'] as num?)?.toDouble() ?? 0.0;
+    final avgMoodScore = (personalStats['average_mood_score'] as num?)?.toDouble() ?? 0.0;
+    final sessionCount = (personalStats['session_count'] as num?)?.toInt() ?? 0;
+    final moodImprovement = (personalStats['mood_improvement'] as num?)?.toDouble() ?? 0.0;
 
     return Card(
       child: Padding(
@@ -217,14 +223,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               children: [
                 const Icon(Icons.analytics, color: Colors.purple),
                 const SizedBox(width: 8),
-                Text(
-                  'Analytics (Last $_selectedDays days)',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'Your Personal Analytics (Last $_selectedDays days)',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 DropdownButton<int>(
                   value: _selectedDays,
                   items: const [
@@ -248,7 +256,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               children: [
                 Expanded(
                   child: _buildAnalyticsCard2(
-                    'Total Interactions',
+                    'Your Interactions',
                     '$totalInteractions',
                     Icons.chat_bubble_outline,
                     Colors.blue,
@@ -288,12 +296,38 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            _buildAnalyticsCard2(
-              'Unique Users',
-              '$uniqueUsers',
-              Icons.people_outline,
-              Colors.purple,
+            Row(
+              children: [
+                Expanded(
+                  child: _buildAnalyticsCard2(
+                    'Sessions',
+                    '$sessionCount',
+                    Icons.access_time,
+                    Colors.purple,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildAnalyticsCard2(
+                    'Mood Trend',
+                    moodImprovement > 0.1 ? '📈 Improving' : moodImprovement < -0.1 ? '📉 Declining' : '➡️ Stable',
+                    moodImprovement > 0.1 ? Icons.trending_up : moodImprovement < -0.1 ? Icons.trending_down : Icons.trending_flat,
+                    moodImprovement > 0.1 ? Colors.green : moodImprovement < -0.1 ? Colors.red : Colors.orange,
+                  ),
+                ),
+              ],
             ),
+            
+            // Add insights section
+            if (insights.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                '💡 Personal Insights',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              _buildInsightsSection(insights),
+            ],
           ],
         ),
       ),
@@ -392,40 +426,47 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildAnalyticsCard2(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Flexible(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: color.withOpacity(0.8),
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 11,
+                color: color.withOpacity(0.8),
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -447,6 +488,86 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             child: Text(
               value,
               style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightsSection(Map<String, dynamic> insights) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInsightRow('Mood Trending', insights['mood_trending'] ?? 'unknown'),
+          _buildInsightRow('Activity Level', insights['activity_level'] ?? 'unknown'),
+          _buildInsightRow('Crisis Frequency', insights['crisis_frequency'] ?? 'unknown'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightRow(String label, String value) {
+    Color color = Colors.grey;
+    IconData icon = Icons.info;
+    
+    switch (value.toLowerCase()) {
+      case 'improving':
+        color = Colors.green;
+        icon = Icons.trending_up;
+        break;
+      case 'declining':
+        color = Colors.red;
+        icon = Icons.trending_down;
+        break;
+      case 'stable':
+        color = Colors.blue;
+        icon = Icons.trending_flat;
+        break;
+      case 'high':
+        color = Colors.green;
+        icon = Icons.arrow_upward;
+        break;
+      case 'moderate':
+        color = Colors.orange;
+        icon = Icons.remove;
+        break;
+      case 'low':
+        color = Colors.red;
+        icon = Icons.arrow_downward;
+        break;
+      case 'concerning':
+        color = Colors.red;
+        icon = Icons.warning;
+        break;
+      case 'none':
+        color = Colors.green;
+        icon = Icons.check_circle;
+        break;
+    }
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(
+            '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          Text(
+            value.toUpperCase(),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

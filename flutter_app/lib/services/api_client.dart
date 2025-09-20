@@ -145,4 +145,70 @@ class MentalHealthApi {
     }
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
+
+  Future<Map<String, dynamic>> getUserAnalytics({int days = 7, String userId = 'flutter_user'}) async {
+    final uri = Uri.parse('$baseUrl/user_analytics/$userId?days=$days');
+    final res = await http.get(uri);
+    
+    if (res.statusCode != 200) {
+      throw Exception('Failed to get user analytics: ${res.statusCode}');
+    }
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  // Daily Streak System APIs
+  Future<Map<String, dynamic>> getDailyQuestions({String userId = 'flutter_user'}) async {
+    final uri = Uri.parse('$baseUrl/daily_questions/$userId');
+    final res = await http.get(uri);
+    
+    if (res.statusCode != 200) {
+      throw Exception('Failed to get daily questions: ${res.statusCode}');
+    }
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> submitDailyCheckin({
+    required Map<String, dynamic> questionsData,
+    required List<Map<String, dynamic>> answers,
+    String userId = 'flutter_user',
+  }) async {
+    final uri = Uri.parse('$baseUrl/submit_daily_checkin');
+    final res = await http.post(
+      uri,
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'user_id': userId,
+        'questions_data': questionsData,
+        'answers': answers,
+      }),
+    );
+    
+    if (res.statusCode != 200) {
+      throw Exception('Failed to submit daily check-in: ${res.statusCode}');
+    }
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getStreakInfo({String userId = 'flutter_user'}) async {
+    final uri = Uri.parse('$baseUrl/streak_info/$userId');
+    final res = await http.get(uri);
+    
+    if (res.statusCode != 200) {
+      throw Exception('Failed to get streak info: ${res.statusCode}');
+    }
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  Future<List<Map<String, dynamic>>> getDailyScores({
+    String userId = 'flutter_user',
+    int days = 30,
+  }) async {
+    final uri = Uri.parse('$baseUrl/daily_scores/$userId?days=$days');
+    final res = await http.get(uri);
+    
+    if (res.statusCode != 200) {
+      throw Exception('Failed to get daily scores: ${res.statusCode}');
+    }
+    return List<Map<String, dynamic>>.from(jsonDecode(res.body));
+  }
 }
