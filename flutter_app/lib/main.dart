@@ -11,6 +11,7 @@ import 'widgets/activity_recommendations.dart';
 import 'screens/settings_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/daily_streak_screen.dart';
+import 'config/api_config.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,9 +38,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final _controller = TextEditingController();
-  // If backend runs on laptop and you're using Android emulator, use 10.0.2.2:8000
-  // For embedded Python on-device, use 127.0.0.1:8000
-  final _api = MentalHealthApi(baseUrl: 'http://127.0.0.1:8000');
+  // API client configured from centralized config
+  final _api = MentalHealthApi(baseUrl: ApiConfig.baseUrl);
   final _imagePicker = ImagePicker();
   bool _checking = true;
   bool _backendOk = false;
