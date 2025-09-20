@@ -13,3 +13,10 @@ onnxruntime-tools==1.7.0
 # Mobile conversion (optional): uncomment if converting ONNX -> TFLite
 # tf2onnx==1.15.1
 # tensorflow==2.14.0
+
+# Multi-modal AI dependencies
+torchaudio==2.1.1
+librosa==0.10.1
+opencv-python==4.8.1.78
+tensorflow==2.14.0
+python-multipart==0.0.6

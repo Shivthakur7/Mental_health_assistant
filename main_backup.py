@@ -8,10 +8,9 @@ import tempfile
 from typing import Optional
 from model import analyze_mood
 from cbt_tips import cbt_tips
-# Temporarily disable problematic imports
-# from voice_emotion import analyze_voice_emotion
-# from face_emotion import analyze_face_emotion
-# from multimodal_fusion import fuse_multimodal_emotions
+from voice_emotion import analyze_voice_emotion
+from face_emotion import analyze_face_emotion
+from multimodal_fusion import fuse_multimodal_emotions
 
 app = FastAPI(title="Mental Health AI API - Multi-modal Edition")
 
@@ -51,12 +50,15 @@ async def analyze_multimodal(
     """
     Multi-modal emotion analysis endpoint.
     Accepts text, optional audio file, and optional image file.
-    Currently simplified to work with text analysis only.
     """
     
     # Initialize results
     text_score = None
     text_confidence = 1.0
+    voice_label = None
+    voice_confidence = 0.0
+    face_label = None
+    face_confidence = 0.0
     
     # 1. Text Analysis
     if text and text.strip():
@@ -69,35 +71,57 @@ async def analyze_multimodal(
             text_score = 0.0
             text_confidence = 0.3
     
-    # 2. Voice Analysis (simplified - just acknowledge file received)
-    voice_label = None
-    voice_confidence = 0.0
+    # 2. Voice Analysis (if audio provided)
     if audio and audio.filename:
-        print(f"Audio file received: {audio.filename}")
-        voice_label = "neutral"  # Placeholder
-        voice_confidence = 0.5
-        # Clean up the uploaded file
-        audio.file.close()
+        temp_audio_path = None
+        try:
+            # Save uploaded audio to temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
+                shutil.copyfileobj(audio.file, temp_audio)
+                temp_audio_path = temp_audio.name
+            
+            # Analyze voice emotion
+            voice_label, voice_confidence = analyze_voice_emotion(temp_audio_path)
+            
+        except Exception as e:
+            print(f"Voice analysis error: {e}")
+            voice_label = "neutral"
+            voice_confidence = 0.3
+        finally:
+            # Clean up temporary file
+            if temp_audio_path and os.path.exists(temp_audio_path):
+                os.unlink(temp_audio_path)
     
-    # 3. Face Analysis (simplified - just acknowledge file received)
-    face_label = None
-    face_confidence = 0.0
+    # 3. Face Analysis (if image provided)
     if image and image.filename:
-        print(f"Image file received: {image.filename}")
-        face_label = "neutral"  # Placeholder
-        face_confidence = 0.5
-        # Clean up the uploaded file
-        image.file.close()
+        temp_image_path = None
+        try:
+            # Save uploaded image to temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_image:
+                shutil.copyfileobj(image.file, temp_image)
+                temp_image_path = temp_image.name
+            
+            # Analyze facial emotion
+            face_label, face_confidence = analyze_face_emotion(temp_image_path)
+            
+        except Exception as e:
+            print(f"Face analysis error: {e}")
+            face_label = "neutral"
+            face_confidence = 0.3
+        finally:
+            # Clean up temporary file
+            if temp_image_path and os.path.exists(temp_image_path):
+                os.unlink(temp_image_path)
     
-    # 4. Simple fusion (primarily text-based for now)
-    final_mood_score = text_score if text_score is not None else 0.0
-    final_confidence = text_confidence
-    
-    fusion_result = {
-        "final_mood_score": final_mood_score,
-        "final_confidence": final_confidence,
-        "primary_modality": "text"
-    }
+    # 4. Fuse all modalities
+    fusion_result = fuse_multimodal_emotions(
+        text_score=text_score,
+        text_confidence=text_confidence,
+        voice_label=voice_label,
+        voice_confidence=voice_confidence,
+        face_label=face_label,
+        face_confidence=face_confidence
+    )
     
     # 5. Get CBT tip based on final mood
     tip = random.choice(cbt_tips)
@@ -121,7 +145,7 @@ async def analyze_multimodal(
             } if face_label else None
         },
         "cbt_tip": tip,
-        "recommendation": _get_recommendation(final_mood_score)
+        "recommendation": _get_recommendation(fusion_result["final_mood_score"])
     }
     
     return response
