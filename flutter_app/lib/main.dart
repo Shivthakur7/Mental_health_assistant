@@ -369,14 +369,14 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: [
           Container(
-            height: 200,
             decoration: const BoxDecoration(
               gradient: AppTheme.primaryGradient,
             ),
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
@@ -401,6 +401,7 @@ class _HomePageState extends State<HomePage> {
                         color: Colors.white,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       'Mental Health Assistant',
                       style: GoogleFonts.poppins(

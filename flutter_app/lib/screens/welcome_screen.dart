@@ -22,10 +22,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   @override
   void initState() {
     super.initState();
+    
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
+    
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
@@ -72,156 +74,148 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               children: [
                 Expanded(
                   child: SingleChildScrollView(
-                    child: AnimationLimiter(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                      children: AnimationConfiguration.toStaggeredList(
-                        duration: const Duration(milliseconds: 600),
-                        childAnimationBuilder: (widget) => SlideAnimation(
-                          verticalOffset: 50.0,
-                          child: FadeInAnimation(child: widget),
-                        ),
-                        children: [
-                          // Logo/Icon
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              gradient: AppTheme.primaryGradient,
-                              borderRadius: BorderRadius.circular(30),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.primaryBlue.withOpacity(0.3),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.psychology,
-                              size: 60,
-                              color: Colors.white,
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 40),
-                          
-                          // Animated Title
-                          AnimatedTextKit(
-                            animatedTexts: [
-                              TypewriterAnimatedText(
-                                'MindCare AI',
-                                textStyle: GoogleFonts.poppins(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryBlue,
-                                ),
-                                speed: const Duration(milliseconds: 100),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Logo/Icon
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.primaryGradient,
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
                               ),
                             ],
-                            totalRepeatCount: 1,
                           ),
-                          
-                          const SizedBox(height: 16),
-                          
-                          // Subtitle
-                          FadeTransition(
-                            opacity: _fadeAnimation,
-                            child: Text(
-                              'Your personal mental health companion',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w400,
+                          child: const Icon(
+                            Icons.psychology,
+                            size: 60,
+                            color: Colors.white,
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 40),
+                        
+                        // Animated Title
+                        AnimatedTextKit(
+                          animatedTexts: [
+                            TypewriterAnimatedText(
+                              'MindCare AI',
+                              textStyle: GoogleFonts.poppins(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryBlue,
                               ),
+                              speed: const Duration(milliseconds: 100),
+                            ),
+                          ],
+                          totalRepeatCount: 1,
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Subtitle
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: Text(
+                            'Your personal mental health companion',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
-                          
-                          const SizedBox(height: 60),
-                          
-                          // Features
-                          SlideTransition(
-                            position: _slideAnimation,
-                            child: Column(
-                              children: [
-                                _buildFeatureItem(
-                                  Icons.chat_bubble_outline,
-                                  'AI-Powered Analysis',
-                                  'Get personalized insights about your mental state',
-                                ),
-                                const SizedBox(height: 20),
-                                _buildFeatureItem(
-                                  Icons.self_improvement,
-                                  'Mindfulness Exercises',
-                                  'Practice breathing and meditation techniques',
-                                ),
-                                const SizedBox(height: 20),
-                                _buildFeatureItem(
-                                  Icons.trending_up,
-                                  'Mood Tracking',
-                                  'Monitor your emotional journey over time',
+                        ),
+                        
+                        const SizedBox(height: 60),
+                        
+                        // Features
+                        SlideTransition(
+                          position: _slideAnimation,
+                          child: Column(
+                            children: [
+                              _buildFeatureItem(
+                                Icons.chat_bubble_outline,
+                                'AI-Powered Analysis',
+                                'Get personalized insights about your mental state',
+                              ),
+                              const SizedBox(height: 20),
+                              _buildFeatureItem(
+                                Icons.self_improvement,
+                                'Mindfulness Exercises',
+                                'Practice breathing and meditation techniques',
+                              ),
+                              const SizedBox(height: 20),
+                              _buildFeatureItem(
+                                Icons.trending_up,
+                                'Mood Tracking',
+                                'Monitor your emotional journey over time',
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 40),
+                        
+                        // Get Started Button
+                        SlideTransition(
+                          position: _slideAnimation,
+                          child: Container(
+                            width: double.infinity,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 6),
                                 ),
                               ],
                             ),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).pushReplacement(
+                                  PageRouteBuilder(
+                                    pageBuilder: (context, animation, secondaryAnimation) =>
+                                        const HomePage(),
+                                    transitionsBuilder:
+                                        (context, animation, secondaryAnimation, child) {
+                                      return FadeTransition(
+                                        opacity: animation,
+                                        child: child,
+                                      );
+                                    },
+                                    transitionDuration: const Duration(milliseconds: 800),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: Text(
+                                'Get Started',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Get Started Button
-                SlideTransition(
-                  position: _slideAnimation,
-                  child: Container(
-                    width: double.infinity,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryBlue.withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 6),
                         ),
                       ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pushReplacement(
-                          PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) =>
-                                const HomePage(),
-                            transitionsBuilder:
-                                (context, animation, secondaryAnimation, child) {
-                              return FadeTransition(
-                                opacity: animation,
-                                child: child,
-                              );
-                            },
-                            transitionDuration: const Duration(milliseconds: 800),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(
-                        'Get Started',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
                     ),
                   ),
                 ),

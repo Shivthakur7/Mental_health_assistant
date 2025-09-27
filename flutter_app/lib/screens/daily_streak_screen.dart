@@ -122,7 +122,12 @@ class _DailyStreakScreenState extends State<DailyStreakScreen> {
               color: needsIntervention ? Colors.red : Colors.green,
             ),
             const SizedBox(width: 8),
-            const Text('Daily Check-in Complete!'),
+            const Expanded(
+              child: Text(
+                'Daily Check-in Complete!',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
