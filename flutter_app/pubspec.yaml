@@ -46,6 +46,14 @@ dependencies:
   shared_preferences: ^2.2.2  # Session management
   url_launcher: ^6.2.5        # Open crisis helplines
   provider: ^6.1.1            # State management
+  
+  # UI and Animation dependencies
+  flutter_staggered_animations: ^1.1.1  # Smooth list animations
+  lottie: ^3.1.2                        # Lottie animations
+  animated_text_kit: ^4.2.2             # Text animations
+  google_fonts: ^6.2.1                  # Beautiful fonts
+  flutter_svg: ^2.0.10+1                # SVG support
+  shimmer: ^3.0.0                       # Loading animations
 
 dev_dependencies:
   flutter_test:
